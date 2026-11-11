@@ -1,0 +1,291 @@
+import type { CheckStep, LocalisedItem } from "../schema/knowledge";
+import { SUBS, type Sub } from "./dtc-extended";
+
+/**
+ * Subsystem templates for the full generic catalogue (seed-data/catalog/*).
+ * A catalogue row carries only the standard generic title (EN + AR) and a
+ * template key; meaning, symptoms, causes, checks and fixes come from the
+ * template. Template content is family-level general knowledge — an
+ * UNREVIEWED DRAFT, labelled as such in the UI.
+ */
+
+const s = (ar: string, en: string): LocalisedItem => ({ ar, en });
+const chk = (id: string, where: CheckStep["where"], inv: number, ar: string, en: string, expAr: string, expEn: string, tools: string[] = []): CheckStep => ({ id, where, invasiveness: inv, ar, en, expectedAr: expAr, expectedEn: expEn, tools });
+
+const scan = chk("scan-freeze-frame", "home", 0, "اقرأ الأكواد مع بيانات Freeze Frame بجهاز OBD-II وسجّلها قبل أي مسح.", "Read the codes with freeze-frame data using an OBD-II scanner and note them before clearing anything.", "تعرف الظروف التي ظهر فيها العطل.", "You learn the conditions when the fault set.", ["OBD-II scanner"]);
+const confirmFix = s("امسح الأكواد بعد الإصلاح وقُد السيارة دورة اختبار للتأكد أن الكود لم يعد.", "Clear codes after the repair and do a test drive to confirm the code does not return.");
+const wiring = (id: string, ar: string, en: string) => chk(`connector-${id}`, "home", 1, `افحص بصريًا موصل وأسلاك ${ar} والمحرك مطفأ: تأكسد، دبابيس مرتخية، أسلاك مقطوعة أو ملامسة لأجزاء حارة.`, `With the engine off, visually inspect the ${en} connector and wiring for corrosion, loose pins, cut wires or contact with hot parts.`, "سليمة ومثبتة.", "Intact and seated.", ["Flashlight"]);
+const circuit = (id: string, ar: string, en: string) => chk(`circuit-${id}`, "workshop", 3, `قياس التغذية والأرضي والإشارة في دائرة ${ar} حسب المخطط الكهربائي.`, `Measure power, ground and signal of the ${en} circuit against the wiring diagram.`, "ضمن المواصفة ولا يوجد قصر أو قطع.", "Within spec; no short or open.", ["Multimeter", "Wiring diagram"]);
+const live = (id: string, ar: string, en: string) => chk(`live-${id}`, "workshop", 2, `مراقبة قراءة ${ar} في البيانات الحية ومقارنتها بالحالة الفعلية.`, `Watch the ${en} reading in live data and compare it with real conditions.`, "القراءة منطقية وتتغير بسلاسة.", "Plausible and changes smoothly.", ["Scan tool with live data"]);
+const actuatorTest = (id: string, ar: string, en: string) => chk(`actuator-${id}`, "workshop", 2, `تفعيل ${ar} بجهاز فحص ثنائي الاتجاه ومراقبة الاستجابة.`, `Command the ${en} with a bidirectional scan tool and watch the response.`, "يستجيب للأمر.", "Responds to the command.", ["Bidirectional scan tool"]);
+const battery = chk("battery-voltage", "home", 1, "قِس جهد البطارية والمحرك مطفأ ثم وهو يعمل.", "Measure battery voltage engine-off and running.", "حوالي 12.4–12.7 فولت مطفأ و13.5–14.7 فولت أثناء التشغيل.", "About 12.4–12.7 V off and 13.5–14.7 V running.", ["Multimeter"]);
+const oilLevel = chk("oil-level", "home", 1, "افحص مستوى زيت المحرك وحالته على أرض مستوية والمحرك مطفأ.", "Check engine oil level and condition on level ground, engine off.", "بين العلامتين ونظيف نسبيًا.", "Between the marks and reasonably clean.", []);
+const exhaustLeak = chk("exhaust-leak", "workshop", 2, "فحص تسريب العادم قبل وبعد الحساسات.", "Check for exhaust leaks before and after the sensors.", "لا يوجد تسريب.", "No leak.", []);
+const refer = chk("refer-specialist", "specialist", 0, "لا تفحص بنفسك: هذا نظام سلامة. توجّه إلى ورشة مختصة لديها جهاز فحص يدعم الوحدة.", "Do not test this yourself: it is a safety system. Go to a specialist with a scan tool that supports the module.", "تشخيص آمن لدى مختص.", "Safe diagnosis by a specialist.", []);
+
+const NEW: Record<string, Sub> = {
+  sensor_engine: {
+    system: "powertrain",
+    meaningAr: "وحدة المحرك رصدت أن إشارة هذا الحساس خارج المدى المتوقع أو مقطوعة أو متقطعة. غالبًا السبب أسلاك/موصل أو الحساس نفسه.",
+    meaningEn: "The engine module saw this sensor's signal out of range, missing or intermittent. Usually wiring/connector or the sensor itself.",
+    symptoms: [s("ضوء المحرك", "Check-engine light"), s("أداء أو استهلاك غير طبيعي أحيانًا", "Sometimes abnormal performance or consumption")],
+    causes: [s("موصل أو أسلاك الحساس", "Sensor connector or wiring"), s("الحساس نفسه", "The sensor itself"), s("مشكلة جهد مرجعي/أرضي", "Reference voltage or ground problem")],
+    checks: [scan, wiring("sensor", "الحساس", "sensor"), live("sensor", "الحساس", "sensor"), circuit("sensor", "الحساس", "sensor")],
+    fixes: [s("إصلاح الموصل/الأسلاك إن وجد الخلل", "Repair connector/wiring if faulty"), s("استبدال الحساس بعد تأكيد عطله بالقياس", "Replace the sensor only after measurement confirms it"), confirmFix],
+    urgency: "soon", skill: "workshop",
+  },
+  actuator_engine: {
+    system: "powertrain",
+    meaningAr: "خلل في دائرة تحكم مشغّل أو صمام أو سولينويد تتحكم به وحدة المحرك (قطع، قصر، أو أداء غير صحيح).",
+    meaningEn: "Fault in the control circuit of an actuator, valve or solenoid driven by the engine module (open, short or incorrect performance).",
+    symptoms: [s("ضوء المحرك", "Check-engine light"), s("الوظيفة المعنية لا تعمل كما يجب", "The related function does not work properly")],
+    causes: [s("المشغّل/الصمام", "Actuator/valve"), s("أسلاك أو موصل", "Wiring or connector"), s("فيوز/ريليه التغذية", "Supply fuse/relay")],
+    checks: [scan, wiring("actuator", "المشغّل", "actuator"), actuatorTest("actuator", "المشغّل", "actuator"), circuit("actuator", "المشغّل", "actuator")],
+    fixes: [s("إصلاح الدائرة أو استبدال المشغّل بعد الاختبار", "Repair the circuit or replace the actuator after testing"), confirmFix],
+    urgency: "soon", skill: "workshop",
+  },
+  turbo: {
+    system: "powertrain",
+    meaningAr: "خلل في نظام الشحن التوربيني: ضغط الشحن، صمام التحكم (Wastegate/VGT)، أو حساساته.",
+    meaningEn: "Fault in the turbocharging system: boost pressure, control valve (wastegate/VGT) or its sensors.",
+    symptoms: [s("ضعف عزم واضح", "Noticeable loss of power"), s("وضع الطوارئ", "Limp mode"), s("صفير أو صوت غير طبيعي", "Whistle or unusual noise")],
+    causes: [s("تسريب في أنابيب الشحن أو الإنتركولر", "Leak in boost pipes or intercooler"), s("مشغّل/صمام التوربو", "Turbo actuator/valve"), s("حساس الضغط", "Pressure sensor"), s("تآكل التوربو", "Worn turbocharger")],
+    checks: [scan, chk("boost-hoses", "home", 1, "افحص بصريًا أنابيب الشحن والوصلات بحثًا عن تشقق أو زيت.", "Visually inspect boost pipes and clamps for cracks or oil.", "سليمة ومحكمة.", "Intact and tight.", ["Flashlight"]), live("boost", "ضغط الشحن المطلوب والفعلي", "commanded vs actual boost"), chk("boost-leak", "workshop", 3, "اختبار تسريب نظام الشحن بالضغط.", "Pressure-test the boost system for leaks.", "لا تسريب.", "No leak.", ["Boost leak tester"])],
+    fixes: [s("إصلاح التسريب أولًا", "Fix leaks first"), s("إصلاح المشغّل أو التوربو بعد التأكيد", "Repair the actuator or turbo once confirmed"), confirmFix],
+    urgency: "urgent", skill: "workshop",
+  },
+  fuel_pressure: {
+    system: "powertrain",
+    meaningAr: "ضغط الوقود أو نظام التحكم بضغطه (المنظم، صمام الحجم، حساس ضغط السكة) خارج المطلوب.",
+    meaningEn: "Fuel pressure or its control (regulator, volume valve, rail pressure sensor) is outside the requested value.",
+    symptoms: [s("صعوبة تشغيل", "Hard starting"), s("ضعف عزم أو تقطيع", "Loss of power or hesitation"), s("انطفاء", "Stalling")],
+    causes: [s("فلتر وقود مسدود", "Clogged fuel filter"), s("مضخة الوقود", "Fuel pump"), s("منظم/صمام الضغط", "Pressure regulator/valve"), s("حساس ضغط السكة", "Rail pressure sensor")],
+    checks: [scan, live("fuel-pressure", "ضغط الوقود المطلوب والفعلي", "requested vs actual fuel pressure"), chk("fuel-pressure-gauge", "workshop", 3, "قياس ضغط الوقود بعداد مخصص لدى ورشة (لا تفتح نظام الوقود بنفسك).", "Measure fuel pressure with a gauge at a workshop (don't open the fuel system yourself).", "ضمن المواصفة.", "Within spec.", ["Fuel pressure gauge"])],
+    fixes: [s("استبدال الفلتر/المضخة/الصمام حسب نتيجة القياس", "Replace filter/pump/valve according to the measurement"), confirmFix],
+    urgency: "urgent", skill: "workshop", safety: "fuel",
+  },
+  cam_timing: {
+    system: "powertrain",
+    meaningAr: "توقيت عمود الكامات أو نظام التوقيت المتغير (VVT) لا يطابق ما تطلبه الوحدة، أو خلل في دائرة صمامه.",
+    meaningEn: "Camshaft timing or the variable valve timing (VVT) system does not match the module's request, or its valve circuit is faulty.",
+    symptoms: [s("خمول غير مستقر", "Unstable idle"), s("ضعف عزم", "Loss of power"), s("صوت طقطقة عند التشغيل", "Rattle at start-up")],
+    causes: [s("مستوى/نوعية زيت غير صحيح", "Wrong oil level or grade"), s("صمام VVT (OCV)", "VVT oil control valve"), s("سلسلة/سير توقيت ممطوط", "Stretched timing chain/belt"), s("حساس الكامات", "Camshaft sensor")],
+    checks: [scan, oilLevel, actuatorTest("vvt", "صمام التوقيت", "VVT valve"), live("cam-timing", "زاوية الكامات المطلوبة والفعلية", "desired vs actual cam angle")],
+    fixes: [s("تبديل الزيت بالنوع الصحيح ثم إعادة الفحص", "Change oil to the correct grade, then retest"), s("استبدال صمام VVT أو إصلاح التوقيت بعد التأكيد", "Replace the VVT valve or repair timing once confirmed"), confirmFix],
+    urgency: "urgent", skill: "workshop",
+  },
+  injector: {
+    system: "powertrain",
+    meaningAr: "خلل في دائرة بخاخ أو أدائه؛ قد لا تحصل الأسطوانة على الكمية الصحيحة من الوقود.",
+    meaningEn: "Injector circuit or performance fault; the cylinder may not get the correct amount of fuel.",
+    symptoms: [s("رجفة", "Shaking"), s("احتراق ناقص", "Misfire"), s("ضعف عزم", "Loss of power")],
+    causes: [s("البخاخ", "Injector"), s("أسلاك/موصل", "Wiring/connector"), s("مشغّل البخاخات في الوحدة", "Injector driver in the module")],
+    checks: [scan, wiring("injector", "البخاخ", "injector"), chk("injector-resistance", "workshop", 3, "قياس مقاومة البخاخ ومقارنتها بالبقية.", "Measure injector resistance and compare with the others.", "مقاربة للبقية.", "Similar to the others.", ["Multimeter"])],
+    fixes: [s("إصلاح الأسلاك أو استبدال البخاخ بعد التأكيد", "Repair wiring or replace the injector once confirmed"), confirmFix],
+    urgency: "urgent", skill: "workshop",
+  },
+  misfire: {
+    system: "powertrain",
+    meaningAr: "رُصد احتراق ناقص. استمرار القيادة مع احتراق ناقص قوي قد يتلف المحفّز (الدبة).",
+    meaningEn: "A misfire was detected. Continued driving with a strong misfire can damage the catalytic converter.",
+    symptoms: [s("رجفة وضعف تسارع", "Shaking and hesitation"), s("ضوء المحرك قد يومض", "Check-engine light may flash")],
+    causes: [s("بواجي/كويلات", "Spark plugs/coils"), s("بخاخ", "Injector"), s("تسريب هواء", "Air leak"), s("كمبريشن منخفض", "Low compression")],
+    checks: [scan, chk("plugs-coils", "workshop", 2, "فحص البواجي والكويلات وتبديل الكويل بين الأسطوانات لمعرفة انتقال العطل.", "Inspect plugs and coils; swap a coil between cylinders to see if the misfire moves.", "تحديد القطعة المسببة.", "Culprit identified.", ["Basic hand tools"]), chk("compression", "workshop", 4, "اختبار الكمبريشن.", "Compression test.", "قيم متقاربة.", "Similar values.", ["Compression gauge"])],
+    fixes: [s("استبدال القطعة التي ثبت عطلها", "Replace the part proven faulty"), confirmFix],
+    urgency: "urgent", skill: "intermediate",
+  },
+  ignition: {
+    system: "powertrain",
+    meaningAr: "خلل في دائرة ملف إشعال (كويل) أو في نظام الإشعال.",
+    meaningEn: "Fault in an ignition coil circuit or the ignition system.",
+    symptoms: [s("احتراق ناقص", "Misfire"), s("رجفة", "Shaking")],
+    causes: [s("الكويل", "Coil"), s("أسلاك/موصل", "Wiring/connector"), s("البوجي", "Spark plug")],
+    checks: [scan, wiring("coil", "الكويل", "coil"), chk("swap-coil", "workshop", 2, "بدّل الكويل مع أسطوانة أخرى ولاحظ انتقال الكود.", "Swap the coil with another cylinder and see if the code follows.", "إذا انتقل فالكويل هو السبب.", "If it follows, the coil is at fault.", ["Basic hand tools"])],
+    fixes: [s("استبدال الكويل أو إصلاح الدائرة", "Replace the coil or repair the circuit"), confirmFix],
+    urgency: "urgent", skill: "intermediate",
+  },
+  knock: {
+    system: "powertrain",
+    meaningAr: "خلل في دائرة حساس الطرق (Knock) الذي يحمي المحرك من الاحتراق المبكر.",
+    meaningEn: "Fault in the knock sensor circuit that protects the engine from detonation.",
+    symptoms: [s("ضعف عزم (تأخير الشرارة احتياطًا)", "Reduced power (timing retarded as a precaution)"), s("زيادة استهلاك", "Higher consumption")],
+    causes: [s("الحساس أو عزم ربطه", "Sensor or its tightening torque"), s("أسلاك تحت مجمع السحب", "Wiring under the intake manifold"), s("ضجيج ميكانيكي حقيقي", "Real mechanical noise")],
+    checks: [scan, wiring("knock", "حساس الطرق", "knock sensor"), circuit("knock", "حساس الطرق", "knock sensor")],
+    fixes: [s("إصلاح الأسلاك أو استبدال الحساس بالعزم الصحيح", "Repair wiring or replace the sensor at the correct torque"), s("استخدم الوقود بالأوكتان الموصى به", "Use the recommended octane fuel"), confirmFix],
+    urgency: "soon", skill: "workshop",
+  },
+  crank_cam: {
+    system: "powertrain",
+    meaningAr: "خلل في إشارة حساس عمود الكرنك أو الكامات، أو عدم تطابقهما. قد ينطفئ المحرك أو لا يشتغل.",
+    meaningEn: "Fault in the crankshaft or camshaft sensor signal, or the two disagree. The engine may stall or not start.",
+    symptoms: [s("انطفاء مفاجئ", "Sudden stalling"), s("صعوبة أو عدم تشغيل", "Hard or no start"), s("تقطيع", "Stumbling")],
+    causes: [s("الحساس", "Sensor"), s("أسلاك/موصل", "Wiring/connector"), s("عجلة الإشارة أو التوقيت", "Reluctor wheel or timing")],
+    checks: [scan, wiring("crank-cam", "الحساس", "sensor"), circuit("crank-cam", "الحساس", "sensor")],
+    fixes: [s("استبدال الحساس أو إصلاح الأسلاك بعد القياس", "Replace the sensor or repair wiring after measurement"), s("فحص التوقيت إن كان عدم تطابق", "Check timing if it is a correlation fault"), confirmFix],
+    urgency: "urgent", skill: "workshop",
+  },
+  o2_sensor: {
+    system: "powertrain",
+    meaningAr: "خلل في دائرة حساس الأوكسجين أو استجابته أو سخّانه. الحساس يقيس الخليط لتصحيح الوقود ومراقبة المحفّز.",
+    meaningEn: "Fault in an oxygen sensor circuit, response or heater. The sensor measures mixture for fuel correction and catalyst monitoring.",
+    symptoms: [s("ضوء المحرك", "Check-engine light"), s("زيادة استهلاك", "Higher consumption")],
+    causes: [s("حساس متقادم", "Aged sensor"), s("أسلاك/موصل قرب العادم", "Wiring/connector near the exhaust"), s("تسريب عادم", "Exhaust leak"), s("فيوز السخان", "Heater fuse")],
+    checks: [scan, wiring("o2", "حساس الأوكسجين", "oxygen sensor"), live("o2", "حساس الأوكسجين", "oxygen sensor"), exhaustLeak],
+    fixes: [s("إصلاح التسريب أو الأسلاك أولًا", "Fix leaks or wiring first"), s("استبدال الحساس إذا ثبت عطله", "Replace the sensor if proven faulty"), confirmFix],
+    urgency: "soon", skill: "intermediate",
+  },
+  catalyst: {
+    system: "powertrain",
+    meaningAr: "كفاءة المحفّز (الدبة) أو نظام معالجة العادم أقل من الحد. قد يكون السبب الحساس أو الخليط لا المحفّز نفسه.",
+    meaningEn: "Catalyst or after-treatment efficiency is below threshold. The cause may be a sensor or the mixture rather than the converter itself.",
+    symptoms: [s("ضوء المحرك فقط غالبًا", "Usually only the check-engine light"), s("رائحة كبريت", "Sulphur smell")],
+    causes: [s("محفّز متقادم أو متضرر", "Aged or damaged converter"), s("حساس الأوكسجين الخلفي", "Rear oxygen sensor"), s("احتراق ناقص سابق", "Previous misfires"), s("تسريب عادم", "Exhaust leak")],
+    checks: [scan, exhaustLeak, live("o2-rear", "حساسي الأوكسجين الأمامي والخلفي", "front and rear oxygen sensors")],
+    fixes: [s("معالجة أي احتراق ناقص أو تسريب أولًا", "Fix any misfire or leak first"), s("استبدال المحفّز فقط بعد استبعاد الحساسات", "Replace the converter only after ruling out the sensors"), confirmFix],
+    urgency: "monitor", skill: "workshop",
+  },
+  egr: {
+    system: "powertrain",
+    meaningAr: "خلل في نظام إعادة تدوير غازات العادم (EGR): التدفق أو الصمام أو حساسه.",
+    meaningEn: "Fault in the exhaust gas recirculation (EGR) system: flow, valve or its sensor.",
+    symptoms: [s("خمول غير مستقر", "Unstable idle"), s("طرق خفيف عند التسارع", "Light knocking on acceleration"), s("دخان أسود (ديزل)", "Black smoke (diesel)")],
+    causes: [s("ترسبات كربون في الصمام أو المجاري", "Carbon in the valve or passages"), s("صمام EGR", "EGR valve"), s("خرطوم فاكيوم/حساس", "Vacuum hose/sensor")],
+    checks: [scan, actuatorTest("egr", "صمام EGR", "EGR valve"), live("egr", "موضع صمام EGR", "EGR valve position")],
+    fixes: [s("تنظيف الصمام والمجاري", "Clean the valve and passages"), s("استبدال الصمام إذا ثبت عطله", "Replace the valve if proven faulty"), confirmFix],
+    urgency: "soon", skill: "workshop",
+  },
+  fuel_level: {
+    system: "powertrain",
+    meaningAr: "خلل في إشارة حساس مستوى الوقود؛ قد يعطي عداد الوقود قراءة خاطئة.",
+    meaningEn: "Fault in the fuel level sensor signal; the fuel gauge may read wrongly.",
+    symptoms: [s("عداد وقود غير دقيق", "Inaccurate fuel gauge")],
+    causes: [s("حساس العوامة", "Float sender"), s("أسلاك/موصل", "Wiring/connector")],
+    checks: [scan, live("fuel-level", "مستوى الوقود", "fuel level")],
+    fixes: [s("إصلاح الأسلاك أو استبدال الحساس لدى ورشة", "Repair wiring or replace the sender at a workshop"), confirmFix],
+    urgency: "monitor", skill: "workshop",
+  },
+  vehicle_speed: {
+    system: "powertrain",
+    meaningAr: "خلل في إشارة سرعة السيارة؛ قد يتأثر العداد وتبديل القير ومثبت السرعة.",
+    meaningEn: "Fault in the vehicle speed signal; the speedometer, shifting and cruise control may be affected.",
+    symptoms: [s("عداد سرعة لا يعمل أو متذبذب", "Speedometer dead or erratic"), s("تبديل قير غير طبيعي", "Abnormal shifting")],
+    causes: [s("حساس السرعة", "Speed sensor"), s("أسلاك/موصل", "Wiring/connector"), s("إشارة من وحدة ABS", "Signal from the ABS module")],
+    checks: [scan, wiring("vss", "حساس السرعة", "speed sensor"), live("vss", "السرعة", "vehicle speed")],
+    fixes: [s("إصلاح الدائرة أو استبدال الحساس", "Repair the circuit or replace the sensor"), confirmFix],
+    urgency: "soon", skill: "workshop",
+  },
+  module_internal: {
+    system: "powertrain",
+    meaningAr: "خلل داخلي أو برمجي في وحدة تحكم (ذاكرة، معالج، برمجة، أو تغذية الوحدة).",
+    meaningEn: "Internal or software fault in a control module (memory, processor, programming or module supply).",
+    symptoms: [s("أكواد متعددة أو سلوك غير طبيعي", "Multiple codes or erratic behaviour"), s("قد لا يشتغل المحرك", "Engine may not start")],
+    causes: [s("جهد بطارية/أرضي غير مستقر", "Unstable battery voltage/ground"), s("برمجة الوحدة", "Module software"), s("الوحدة نفسها", "The module itself")],
+    checks: [scan, battery, chk("module-power", "workshop", 3, "فحص تغذية الوحدة وأرضياتها والفيوزات.", "Check module power, grounds and fuses.", "ضمن المواصفة.", "Within spec.", ["Multimeter"])],
+    fixes: [s("معالجة البطارية/الأرضي أولًا", "Fix battery/ground first"), s("تحديث البرمجة أو استبدال الوحدة لدى مختص", "Software update or module replacement by a specialist"), confirmFix],
+    urgency: "urgent", skill: "specialist",
+  },
+  dpf: {
+    system: "powertrain",
+    meaningAr: "خلل في فلتر جزيئات الديزل (DPF): انسداد أو حساس ضغطه أو عملية التجديد.",
+    meaningEn: "Diesel particulate filter (DPF) fault: clogging, its pressure sensor or the regeneration process.",
+    symptoms: [s("ضعف عزم أو وضع الطوارئ", "Loss of power or limp mode"), s("لمبة DPF", "DPF warning light")],
+    causes: [s("قيادة قصيرة متكررة تمنع التجديد", "Frequent short trips prevent regeneration"), s("حساس الضغط التفاضلي أو خراطيمه", "Differential pressure sensor or its hoses"), s("مشكلة حقن/EGR تزيد السخام", "Injection/EGR problem increasing soot")],
+    checks: [scan, live("dpf", "ضغط DPF ونسبة السخام", "DPF pressure and soot load"), chk("dpf-hoses", "workshop", 2, "فحص خراطيم حساس الضغط التفاضلي.", "Inspect the differential pressure sensor hoses.", "سليمة.", "Intact.", [])],
+    fixes: [s("قيادة طويلة على الطريق السريع أو تجديد قسري بجهاز", "A long highway drive or a forced regeneration with a scan tool"), s("معالجة سبب السخام الزائد", "Fix the cause of excess soot"), confirmFix],
+    urgency: "soon", skill: "workshop",
+  },
+  scr_def: {
+    system: "powertrain",
+    meaningAr: "خلل في نظام الحد من أكاسيد النيتروجين (SCR/AdBlue/DEF): السائل أو جودته أو الحاقن أو السخان أو حساس NOx.",
+    meaningEn: "Fault in the NOx reduction system (SCR/AdBlue/DEF): fluid level or quality, dosing injector, heater or NOx sensor.",
+    symptoms: [s("تحذير AdBlue", "AdBlue warning"), s("عدّاد عدم التشغيل بعد مسافة", "Start-inhibit countdown")],
+    causes: [s("سائل AdBlue ناقص أو رديء", "Low or poor-quality AdBlue"), s("حاقن متبلور", "Crystallised dosing injector"), s("حساس NOx", "NOx sensor"), s("سخان الخزان", "Tank heater")],
+    checks: [scan, chk("def-level", "home", 0, "تأكد من مستوى AdBlue واستخدم سائلًا مطابقًا للمواصفة ISO 22241.", "Check the AdBlue level and use fluid meeting ISO 22241.", "الخزان ممتلئ بسائل سليم.", "Tank filled with proper fluid.", [])],
+    fixes: [s("تعبئة سائل سليم", "Refill with proper fluid"), s("تنظيف/استبدال الحاقن أو الحساس لدى ورشة", "Clean/replace the injector or sensor at a workshop"), confirmFix],
+    urgency: "soon", skill: "workshop",
+  },
+  exhaust_temp: {
+    system: "powertrain",
+    meaningAr: "خلل في دائرة حساس حرارة العادم المستخدم لحماية التوربو والمحفّز وفلتر DPF.",
+    meaningEn: "Fault in an exhaust gas temperature sensor circuit used to protect the turbo, catalyst and DPF.",
+    symptoms: [s("ضوء المحرك", "Check-engine light"), s("قد يتعطل تجديد DPF", "DPF regeneration may be blocked")],
+    causes: [s("الحساس", "Sensor"), s("أسلاك محروقة قرب العادم", "Burnt wiring near the exhaust")],
+    checks: [scan, wiring("egt", "حساس حرارة العادم", "exhaust temperature sensor"), live("egt", "حرارة العادم", "exhaust temperature")],
+    fixes: [s("إصلاح الأسلاك أو استبدال الحساس", "Repair wiring or replace the sensor"), confirmFix],
+    urgency: "soon", skill: "workshop",
+  },
+  oil_system: {
+    system: "powertrain",
+    meaningAr: "خلل في حساس أو نظام ضغط/حرارة/مستوى زيت المحرك. إذا ظهرت لمبة ضغط الزيت الحمراء أوقف المحرك.",
+    meaningEn: "Fault in an engine oil pressure/temperature/level sensor or system. If the red oil-pressure light shows, stop the engine.",
+    symptoms: [s("لمبة الزيت", "Oil warning light"), s("صوت طقطقة", "Ticking noise")],
+    causes: [s("مستوى زيت منخفض", "Low oil level"), s("الحساس", "Sensor"), s("مضخة زيت أو فلتر مسدود", "Oil pump or clogged filter")],
+    checks: [oilLevel, scan, chk("oil-pressure-gauge", "workshop", 3, "قياس ضغط الزيت الفعلي بعداد ميكانيكي.", "Measure actual oil pressure with a mechanical gauge.", "ضمن المواصفة.", "Within spec.", ["Oil pressure gauge"])],
+    fixes: [s("تصحيح مستوى الزيت فورًا", "Correct the oil level immediately"), s("استبدال الحساس إذا كان الضغط الفعلي سليمًا", "Replace the sensor if real pressure is fine"), confirmFix],
+    urgency: "urgent", skill: "workshop",
+  },
+  ac_system: {
+    system: "powertrain",
+    meaningAr: "خلل في دائرة نظام التكييف (حساس ضغط الفريون، كلتش الكمبروسر، أو التحكم).",
+    meaningEn: "Fault in an A/C system circuit (refrigerant pressure sensor, compressor clutch or control).",
+    symptoms: [s("تبريد ضعيف أو متقطع", "Weak or intermittent cooling")],
+    causes: [s("فريون ناقص (تسريب)", "Low refrigerant (leak)"), s("حساس الضغط", "Pressure sensor"), s("ريليه/كلتش الكمبروسر", "Compressor relay/clutch")],
+    checks: [scan, chk("ac-pressures", "workshop", 2, "قياس ضغوط الفريون بعدادات التكييف لدى فني تبريد.", "Measure refrigerant pressures with A/C gauges at an A/C technician.", "ضمن المواصفة.", "Within spec.", ["A/C gauges"])],
+    fixes: [s("إصلاح التسريب ثم الشحن بالكمية الصحيحة", "Repair the leak, then charge the correct amount"), s("استبدال الحساس/الريليه حسب الفحص", "Replace sensor/relay per testing"), confirmFix],
+    urgency: "monitor", skill: "workshop",
+  },
+  cyl_deact: {
+    system: "powertrain",
+    meaningAr: "خلل في نظام إيقاف الأسطوانات (توفير الوقود): سولينويد أو رافعات الصمامات الخاصة بأسطوانة محددة.",
+    meaningEn: "Fault in the cylinder deactivation (fuel saving) system: the solenoid or deactivating lifters for a cylinder.",
+    symptoms: [s("طقطقة أو احتراق ناقص", "Ticking or misfire"), s("زيادة استهلاك", "Higher consumption")],
+    causes: [s("زيت ناقص أو غير مطابق", "Low or wrong oil"), s("سولينويد التحكم", "Control solenoid"), s("رافعات صمامات تالفة", "Failed lifters")],
+    checks: [scan, oilLevel, wiring("cyl-deact", "سولينويد إيقاف الأسطوانة", "deactivation solenoid")],
+    fixes: [s("تبديل الزيت بالنوع الصحيح", "Change to the correct oil"), s("إصلاح السولينويد أو الرافعات لدى ورشة", "Repair the solenoid or lifters at a workshop"), confirmFix],
+    urgency: "soon", skill: "workshop",
+  },
+  hybrid_hv: {
+    system: "powertrain",
+    meaningAr: "خلل في نظام الجهد العالي للسيارة الهجينة أو الكهربائية (البطارية، العاكس، المحرك الكهربائي، أو عزلها). خطر صعق كهربائي.",
+    meaningEn: "Fault in the high-voltage system of a hybrid/electric vehicle (battery, inverter, motor or insulation). Risk of electric shock.",
+    symptoms: [s("لمبة النظام الهجين", "Hybrid system warning"), s("عزم محدود أو عدم تشغيل", "Reduced power or no ready mode")],
+    causes: [s("خلايا البطارية أو تبريدها", "Battery cells or cooling"), s("العاكس/المحوّل", "Inverter/converter"), s("عزل كابلات الجهد العالي", "HV cable insulation")],
+    checks: [refer],
+    fixes: [s("إصلاح لدى فني معتمد لأنظمة الجهد العالي فقط", "Repair only by a technician certified for high-voltage systems")],
+    urgency: "urgent", skill: "specialist", safety: "high_voltage",
+  },
+  airbag: {
+    system: "body",
+    meaningAr: "خلل في دائرة نظام الوسائد الهوائية أو شدّاد الحزام؛ قد لا تعمل الوسادة في حادث.",
+    meaningEn: "Fault in an airbag or seat-belt pretensioner circuit; the airbag may not deploy in a crash.",
+    symptoms: [s("لمبة الوسادة الهوائية مضاءة", "Airbag light on")],
+    causes: [s("موصلات تحت المقاعد أو الشريط الحلزوني", "Under-seat connectors or clock spring"), s("وحدة الوسادة أو حساس", "Airbag module or sensor")],
+    checks: [refer],
+    fixes: [s("الإصلاح لدى مختص فقط؛ لا تفصل موصلات الوسائد بنفسك", "Repair by a specialist only; never unplug airbag connectors yourself")],
+    urgency: "urgent", skill: "specialist", safety: "airbag",
+  },
+  abs_chassis: {
+    system: "chassis",
+    meaningAr: "خلل في نظام الفرامل المانعة للانغلاق (ABS) أو التحكم بالثبات أو أحد حساساته. الفرامل العادية تعمل غالبًا لكن بدون ABS.",
+    meaningEn: "Fault in the anti-lock brake (ABS), stability control or one of its sensors. Normal braking usually works, but without ABS.",
+    symptoms: [s("لمبة ABS/الثبات", "ABS/stability light"), s("عداد سرعة متأثر أحيانًا", "Speedometer sometimes affected")],
+    causes: [s("حساس عجلة أو حلقة الإشارة", "Wheel sensor or tone ring"), s("أسلاك قرب العجلة", "Wiring near the wheel"), s("وحدة ABS", "ABS module")],
+    checks: [refer],
+    fixes: [s("قُد بحذر وافحص لدى ورشة فرامل", "Drive carefully and have it checked by a brake workshop")],
+    urgency: "urgent", skill: "workshop", safety: "brakes",
+  },
+  steering_chassis: {
+    system: "chassis",
+    meaningAr: "خلل في نظام التوجيه المساعد الكهربائي أو حساس زاوية المقود.",
+    meaningEn: "Fault in the electric power steering or steering angle sensor.",
+    symptoms: [s("مقود ثقيل", "Heavy steering"), s("لمبة التوجيه", "Steering warning light")],
+    causes: [s("حساس عزم/زاوية المقود", "Steering torque/angle sensor"), s("جهد بطارية منخفض", "Low battery voltage"), s("وحدة التوجيه", "Steering module")],
+    checks: [refer],
+    fixes: [s("فحص لدى مختص؛ قد يلزم معايرة حساس الزاوية", "Have a specialist check it; angle sensor calibration may be needed")],
+    urgency: "urgent", skill: "specialist", safety: "steering",
+  },
+};
+
+export const TEMPLATES: Record<string, Sub> = { ...SUBS, ...NEW };
+export type TemplateKey = keyof typeof TEMPLATES;
+export const TEMPLATE_KEYS = Object.keys(TEMPLATES);

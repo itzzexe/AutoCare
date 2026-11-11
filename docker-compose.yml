@@ -1,0 +1,60 @@
+# Local development services. None of these ports should ever be exposed to
+# the internet: they bind to 127.0.0.1 only. Production layout: deploy/compose.prod.yml.
+#
+#   docker compose up -d postgres redis            # minimal
+#   docker compose --profile scan up -d clamav     # optional malware scanner (~1.5 GB RAM)
+#   docker compose --profile ai up -d ollama       # optional containerised Ollama (CPU; see GPU notes in docs/DEPLOYMENT.md)
+
+name: autocare-dev
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg17
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: autocare
+      POSTGRES_USER: autocare_owner
+      # Development-only credentials. Production uses the secret manager.
+      POSTGRES_PASSWORD: autocare_owner_dev
+    ports: ["127.0.0.1:5432:5432"]
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./ops/sql/roles.sql:/docker-entrypoint-initdb.d/10-roles.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U autocare_owner -d autocare"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  redis:
+    image: redis:7.4-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "no", "--save", "", "--requirepass", "autocare_redis_dev"]
+    ports: ["127.0.0.1:6379:6379"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "autocare_redis_dev", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  clamav:
+    profiles: ["scan"]
+    image: clamav/clamav:1.4
+    restart: unless-stopped
+    ports: ["127.0.0.1:3310:3310"]
+
+  ollama:
+    profiles: ["ai"]
+    image: ollama/ollama:latest
+    restart: unless-stopped
+    environment:
+      OLLAMA_NO_CLOUD: "1"
+      OLLAMA_NUM_PARALLEL: "1"
+      OLLAMA_MAX_QUEUE: "16"
+      OLLAMA_KEEP_ALIVE: "10m"
+    ports: ["127.0.0.1:11435:11434"]
+    volumes: ["ollama:/root/.ollama"]
+
+volumes:
+  pgdata:
+  ollama:

@@ -1,0 +1,111 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with: { version: 10.12.1 }
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: pnpm }
+      - run: pnpm install --frozen-lockfile
+      - name: Typecheck
+        run: pnpm -r typecheck
+      - name: Unit & integration tests (embedded PostgreSQL via PGlite)
+        run: pnpm --filter @autocare/web test
+      - name: Production build
+        run: pnpm --filter @autocare/web build
+        env:
+          # Build-time placeholders only; runtime secrets come from the secret manager.
+          CSRF_SECRET: ci-build-placeholder-not-a-secret-000000000000000
+          FILE_URL_SECRET: ci-build-placeholder-not-a-secret-000000000000000
+          DATA_ENCRYPTION_KEYS: ci:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=
+          DATA_ENCRYPTION_ACTIVE_KEY_ID: ci
+
+  postgres-integration:
+    # Same suite against a real PostgreSQL + pgvector server (true concurrency for the oversell test).
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    services:
+      postgres:
+        image: pgvector/pgvector:pg17
+        env: { POSTGRES_DB: autocare_test, POSTGRES_USER: test, POSTGRES_PASSWORD: test }
+        ports: ["5432:5432"]
+        options: --health-cmd "pg_isready -U test" --health-interval 5s --health-retries 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with: { version: 10.12.1 }
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: pnpm }
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @autocare/web test
+        env:
+          TEST_DATABASE_URL: postgres://test:test@localhost:5432/autocare_test
+
+  security:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - uses: pnpm/action-setup@v4
+        with: { version: 10.12.1 }
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: pnpm }
+      - run: pnpm install --frozen-lockfile
+      - name: Dependency audit (fail on high/critical)
+        run: pnpm audit --audit-level high
+      - name: Secret scanning
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: SAST (Semgrep)
+        uses: semgrep/semgrep-action@v1
+        with:
+          config: >-
+            p/typescript
+            p/nextjs
+            p/owasp-top-ten
+            p/secrets
+
+  image:
+    runs-on: ubuntu-24.04
+    needs: [test]
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build image
+        run: docker build -f apps/web/Dockerfile -t autocare-web:ci .
+      - name: Scan image (Trivy, fail on fixable HIGH/CRITICAL)
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: autocare-web:ci
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          exit-code: "1"
+      - name: SBOM (CycloneDX via Syft)
+        uses: anchore/sbom-action@v0
+        with:
+          image: autocare-web:ci
+          format: cyclonedx-json
+          output-file: sbom.cdx.json
+      - uses: actions/upload-artifact@v4
+        with: { name: sbom, path: sbom.cdx.json }

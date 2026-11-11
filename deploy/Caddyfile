@@ -1,0 +1,31 @@
+# Reverse proxy with automatic TLS (Let's Encrypt). Replace the domain.
+# HTTP is redirected to HTTPS by Caddy automatically. HSTS is set by the app
+# only when HSTS_ENABLED=true (turn it on after TLS on the domain is verified).
+{
+	email ops@example.org
+	servers {
+		trusted_proxies static private_ranges
+	}
+}
+
+autocare.example.org {
+	encode zstd gzip
+	request_body {
+		max_size 10MB
+	}
+	header {
+		-Server
+		-X-Powered-By
+	}
+	# Upstream sees exactly one proxy hop (TRUSTED_PROXY_HOPS=1).
+	reverse_proxy web:3000 {
+		header_up X-Forwarded-Proto {scheme}
+		transport http {
+			read_timeout 180s
+		}
+	}
+	log {
+		output stdout
+		format json
+	}
+}

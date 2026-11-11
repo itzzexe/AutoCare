@@ -1,0 +1,28 @@
+node_modules/
+.next/
+out/
+dist/
+coverage/
+*.tsbuildinfo
+next-env.d.ts
+
+# local data (embedded DB, uploads) and secrets — never commit
+.data/
+apps/web/.data/
+.env
+.env.local
+.env.*.local
+apps/web/.env.local
+*.pem
+*.key
+
+# OS / editors
+.DS_Store
+Thumbs.db
+.vscode/*
+!.vscode/extensions.json
+
+# test artefacts
+test-results/
+playwright-report/
+reports/*.tmp

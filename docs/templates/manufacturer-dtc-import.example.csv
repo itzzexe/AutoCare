@@ -1,0 +1,4 @@
+code,make,model,yearFrom,yearTo,engine,market,module,titleEn,titleAr,meaningEn,meaningAr,symptoms,causes,fixes,skillLevel,safetyArea,baseUrgency
+P1999,ExampleMake,ExampleModel,2015,2019,,,,EXAMPLE ONLY - not real data,مثال فقط - ليست بيانات حقيقية,Format example for the import tool.,مثال على صيغة ملف الاستيراد.,example symptom one|example symptom two,example cause,example fix,workshop,none,soon
+B1999,ExampleMake,,,,,,BCM,EXAMPLE ONLY - not real data,مثال فقط,Format example.,,,,,workshop,none,monitor
+XYZ,ExampleMake,,,,,,,Deliberately invalid code (to show error reporting),,Shows how a bad row is reported.,,,,,,,

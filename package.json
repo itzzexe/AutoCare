@@ -1,0 +1,21 @@
+{
+  "name": "autocare-iq",
+  "private": true,
+  "packageManager": "pnpm@10.12.1",
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "scripts": {
+    "dev": "pnpm --filter @autocare/web dev",
+    "build": "pnpm --filter @autocare/web build",
+    "test": "pnpm -r --if-present test",
+    "typecheck": "pnpm -r --if-present typecheck",
+    "db:migrate": "pnpm -C apps/web run db:migrate",
+    "db:seed": "pnpm -C apps/web run db:seed",
+    "db:seed:demo": "pnpm -C apps/web run db:seed:demo",
+    "kb:import": "pnpm -C apps/web run kb:import",
+    "kb:validate": "pnpm -C apps/web run kb:validate",
+    "ai:index": "pnpm -C apps/web run ai:index",
+    "ai:eval": "pnpm -C apps/web run ai:eval"
+  }
+}

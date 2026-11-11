@@ -1,0 +1,396 @@
+@import "tailwindcss";
+
+/*
+ * AutoCare IQ — "workshop ledger" visual language.
+ * Paper service tickets, inspection tags, rubber stamps and hazard tape:
+ * the vocabulary of a real garage, not of a chat app.
+ */
+
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+:root {
+  --paper: #f2eee5;
+  --paper-2: #e8e1d2;
+  --card: #fbf9f4;
+  --ink: #1b1a17;
+  --ink-2: #48453e;
+  --ink-3: #66625a; /* ≥ 4.5:1 on paper and card (WCAG AA) */
+  --rule: #d8cfbd;
+  --rule-strong: #1b1a17;
+  --signal: #b8390a; /* white text ≥ 4.5:1 */
+  --signal-hover: #9a2f07;
+  --signal-ink: #ffffff;
+  --signal-soft: #fbe2d3;
+  --ok: #2e6b45;
+  --ok-soft: #dcebdf;
+  --warn: #9a6a12;
+  --warn-soft: #f5e6c4;
+  --danger: #b42318;
+  --danger-soft: #f7d9d4;
+  --info: #24527a;
+  --info-soft: #dce6ef;
+  --tag: #e9d9b4;
+  --tag-ink: #3b2f17;
+  --grid: rgba(27, 26, 23, 0.045);
+  --shadow: 0 1px 0 rgba(27, 26, 23, 0.06), 0 8px 24px -16px rgba(27, 26, 23, 0.35);
+  color-scheme: light;
+}
+
+:root[data-theme="dark"] {
+  --paper: #121210;
+  --paper-2: #1a1916;
+  --card: #1e1d1a;
+  --ink: #ece6d9;
+  --ink-2: #c3bcad;
+  --ink-3: #8f897c;
+  --rule: #35322c;
+  --rule-strong: #ece6d9;
+  --signal: #ff7a3d;
+  --signal-hover: #ff915e;
+  --signal-ink: #1b1a17;
+  --signal-soft: #3b2216;
+  --ok: #6fbf8a;
+  --ok-soft: #1c2d22;
+  --warn: #e3b25a;
+  --warn-soft: #33290f;
+  --danger: #ff7b6e;
+  --danger-soft: #3a1b18;
+  --info: #8ab8e0;
+  --info-soft: #18252f;
+  --tag: #4a3e22;
+  --tag-ink: #f3e3bc;
+  --grid: rgba(236, 230, 217, 0.04);
+  --shadow: 0 1px 0 rgba(0, 0, 0, 0.4), 0 10px 30px -18px rgba(0, 0, 0, 0.9);
+  color-scheme: dark;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]):not([data-theme="dark"]) {
+    --paper: #121210;
+    --paper-2: #1a1916;
+    --card: #1e1d1a;
+    --ink: #ece6d9;
+    --ink-2: #c3bcad;
+    --ink-3: #8f897c;
+    --rule: #35322c;
+    --rule-strong: #ece6d9;
+    --signal: #ff7a3d;
+    --signal-hover: #ff915e;
+    --signal-ink: #1b1a17;
+    --signal-soft: #3b2216;
+    --ok: #6fbf8a;
+    --ok-soft: #1c2d22;
+    --warn: #e3b25a;
+    --warn-soft: #33290f;
+    --danger: #ff7b6e;
+    --danger-soft: #3a1b18;
+    --info: #8ab8e0;
+    --info-soft: #18252f;
+    --tag: #4a3e22;
+    --tag-ink: #f3e3bc;
+    --grid: rgba(236, 230, 217, 0.04);
+    color-scheme: dark;
+  }
+}
+
+@theme inline {
+  --color-paper: var(--paper);
+  --color-paper-2: var(--paper-2);
+  --color-card: var(--card);
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-ink-3: var(--ink-3);
+  --color-rule: var(--rule);
+  --color-signal: var(--signal);
+  --color-signal-soft: var(--signal-soft);
+  --color-ok: var(--ok);
+  --color-ok-soft: var(--ok-soft);
+  --color-warn: var(--warn);
+  --color-warn-soft: var(--warn-soft);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+  --color-info: var(--info);
+  --color-info-soft: var(--info-soft);
+  --font-display: var(--font-kufi), var(--font-readex), system-ui, sans-serif;
+  --font-sans: var(--font-readex), system-ui, sans-serif;
+  --font-mono: var(--font-martian), ui-monospace, monospace;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  text-rendering: optimizeLegibility;
+}
+
+body {
+  background-color: var(--paper);
+  background-image:
+    linear-gradient(var(--grid) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+  background-size: 28px 28px;
+  color: var(--ink);
+  font-family: var(--font-sans);
+  line-height: 1.65;
+  min-height: 100dvh;
+}
+
+::selection {
+  background: var(--signal);
+  color: var(--signal-ink);
+}
+
+:focus-visible {
+  outline: 2.5px solid var(--signal);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+/* Reem Kufi is a display face: large headings only. Smaller headings use Readex bold. */
+h1 {
+  font-family: var(--font-display);
+  line-height: 1.25;
+}
+h2, h3 {
+  font-family: var(--font-sans);
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+/* Arabic must never be letter-spaced or set in a Latin-only mono face (breaks joining). */
+:lang(ar) .label-mono,
+:lang(ar) .ticket-head {
+  font-family: var(--font-sans);
+  letter-spacing: 0;
+  text-transform: none;
+  font-size: 0.74rem;
+  font-weight: 500;
+}
+:lang(ar) .stamp { letter-spacing: 0; }
+
+/* Latin-script identifiers inside Arabic text keep their own direction. */
+.ltr-id {
+  direction: ltr;
+  unicode-bidi: isolate;
+  font-family: var(--font-mono);
+  font-feature-settings: "zero" 1;
+}
+
+@layer components {
+  /* ---------- surfaces ---------- */
+  .ticket {
+    background: var(--card);
+    border: 1px solid var(--rule);
+    box-shadow: var(--shadow);
+    position: relative;
+  }
+  .ticket-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 0.55rem 1rem;
+    border-bottom: 1px dashed var(--rule);
+    font-family: var(--font-mono);
+    font-size: 0.68rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+  }
+  /* Perforated tear line between ticket sections */
+  .perforation {
+    height: 14px;
+    background: radial-gradient(circle at 7px 7px, var(--paper) 4px, transparent 4.5px) repeat-x;
+    background-size: 14px 14px;
+    margin-inline: -1px;
+  }
+  .ruled {
+    background-image: repeating-linear-gradient(to bottom, transparent 0 31px, var(--rule) 31px 32px);
+  }
+
+  /* ---------- inspection tag for codes ---------- */
+  .code-tag {
+    --hole: 5px;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    direction: ltr;
+    unicode-bidi: isolate;
+    font-family: var(--font-mono);
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    color: var(--tag-ink);
+    background:
+      radial-gradient(circle at 12px 50%, var(--paper) var(--hole), transparent calc(var(--hole) + 0.5px)),
+      var(--tag);
+    padding: 0.28rem 0.75rem 0.28rem 1.65rem;
+    clip-path: polygon(8px 0, 100% 0, 100% 100%, 8px 100%, 0 50%);
+    border-radius: 2px;
+  }
+  .code-tag.lg {
+    --hole: 7px;
+    font-size: 1.7rem;
+    padding: 0.4rem 1.2rem 0.4rem 2.4rem;
+    clip-path: polygon(14px 0, 100% 0, 100% 100%, 14px 100%, 0 50%);
+    background:
+      radial-gradient(circle at 19px 50%, var(--paper) var(--hole), transparent calc(var(--hole) + 0.5px)),
+      var(--tag);
+  }
+
+  /* ---------- rubber stamps for review / evidence state ---------- */
+  .stamp {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-family: var(--font-sans);
+    font-size: 0.74rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    padding: 0.08rem 0.55rem;
+    border: 2px solid currentColor;
+    border-radius: 3px;
+    transform: rotate(-1.2deg);
+    white-space: nowrap;
+    line-height: 1.6;
+    opacity: 0.92;
+  }
+  .stamp.ok { color: var(--ok); background: var(--ok-soft); }
+  .stamp.warn { color: var(--warn); background: var(--warn-soft); }
+  .stamp.danger { color: var(--danger); background: var(--danger-soft); }
+  .stamp.info { color: var(--info); background: var(--info-soft); }
+  .stamp.neutral { color: var(--ink-2); background: var(--paper-2); }
+
+  /* ---------- hazard tape for urgent results ---------- */
+  .hazard {
+    height: 10px;
+    background: repeating-linear-gradient(-45deg, #f0b400 0 12px, #1b1a17 12px 24px);
+  }
+  .hazard.red {
+    background: repeating-linear-gradient(-45deg, var(--danger) 0 12px, #1b1a17 12px 24px);
+  }
+
+  /* ---------- controls ---------- */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    min-height: 2.75rem;
+    padding: 0.5rem 1.15rem;
+    font-weight: 600;
+    border: 1.5px solid var(--rule-strong);
+    background: var(--card);
+    color: var(--ink);
+    border-radius: 3px;
+    transition: transform 0.12s ease, background-color 0.12s ease, box-shadow 0.12s ease;
+    box-shadow: 0 2px 0 var(--rule-strong);
+    cursor: pointer;
+  }
+  .btn:hover { background: var(--paper-2); }
+  .btn:active { transform: translateY(2px); box-shadow: 0 0 0 var(--rule-strong); }
+  .btn[disabled], .btn[aria-disabled="true"] { opacity: 0.5; cursor: not-allowed; transform: none; }
+  .btn-primary {
+    background: var(--signal);
+    border-color: var(--rule-strong);
+    color: var(--signal-ink);
+  }
+  .btn-primary:hover { background: var(--signal-hover); }
+  .btn-ghost { border-color: transparent; box-shadow: none; background: transparent; }
+  .btn-ghost:hover { background: var(--paper-2); }
+  .btn-sm { min-height: 2.1rem; padding: 0.25rem 0.75rem; font-size: 0.875rem; }
+
+  .field-label {
+    display: block;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--ink-2);
+    margin-bottom: 0.3rem;
+  }
+  .field {
+    width: 100%;
+    min-height: 2.75rem;
+    padding: 0.5rem 0.75rem;
+    background: var(--card);
+    color: var(--ink);
+    border: 1.5px solid var(--rule);
+    border-bottom-color: var(--ink-3);
+    border-radius: 2px;
+    font: inherit;
+  }
+  .field:focus { border-color: var(--signal); outline: none; box-shadow: 0 0 0 3px var(--signal-soft); }
+  .field[aria-invalid="true"] { border-color: var(--danger); }
+  textarea.field { min-height: 6rem; resize: vertical; }
+  .field-hint { font-size: 0.78rem; color: var(--ink-3); margin-top: 0.25rem; }
+  .field-error { font-size: 0.8rem; color: var(--danger); margin-top: 0.25rem; }
+
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    min-height: 2.25rem;
+    padding: 0.2rem 0.8rem;
+    border: 1.5px solid var(--rule);
+    border-radius: 999px;
+    background: var(--card);
+    font-size: 0.875rem;
+    cursor: pointer;
+  }
+  .chip[aria-pressed="true"], .chip:has(input:checked) {
+    border-color: var(--rule-strong);
+    background: var(--ink);
+    color: var(--paper);
+  }
+
+  .label-mono {
+    font-family: var(--font-mono);
+    font-size: 0.66rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+  }
+
+  .link {
+    color: var(--ink);
+    text-decoration: underline;
+    text-decoration-color: var(--signal);
+    text-decoration-thickness: 2px;
+    text-underline-offset: 3px;
+  }
+  .link:hover { color: var(--signal); }
+
+  .skeleton {
+    background: linear-gradient(90deg, var(--paper-2), var(--card), var(--paper-2));
+    background-size: 200% 100%;
+    animation: shimmer 1.4s ease-in-out infinite;
+    border-radius: 2px;
+  }
+}
+
+@keyframes shimmer {
+  0% { background-position: 100% 0; }
+  100% { background-position: -100% 0; }
+}
+
+@keyframes rise {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: none; }
+}
+.rise { animation: rise 0.45s cubic-bezier(0.2, 0.7, 0.2, 1) both; }
+.rise-1 { animation-delay: 0.05s; }
+.rise-2 { animation-delay: 0.12s; }
+.rise-3 { animation-delay: 0.19s; }
+.rise-4 { animation-delay: 0.26s; }
+
+@keyframes stamp-in {
+  0% { opacity: 0; transform: scale(1.4) rotate(-6deg); }
+  70% { opacity: 1; transform: scale(0.96) rotate(-1deg); }
+  100% { transform: scale(1) rotate(-1.2deg); }
+}
+.stamp-in { animation: stamp-in 0.35s ease-out both; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; transition-duration: 0.001ms !important; }
+}
+
+@media print {
+  body { background: #fff; }
+  .no-print { display: none !important; }
+}
